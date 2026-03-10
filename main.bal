@@ -1,50 +1,69 @@
-import ballerina/http;
+import ballerinax/trigger.github;
 import ballerina/log;
 
 // GitHub webhook service
-service /github on githubWebhookListener {
+service github:PullRequestService on githubListener {
 
-    // Webhook endpoint for pull request events
-    resource function post webhook(@http:Payload GitHubWebhookPayload payload) returns http:Ok|http:BadRequest|error {
-        
-        log:printInfo(string `Received GitHub webhook: action=${payload.action}`);
+    remote function onClosed(github:PullRequestEvent event) returns error? {
 
-        // Check if this is a closed PR event
-        if payload.action != "closed" {
-            log:printInfo("Ignoring non-closed PR event");
-            return http:OK;
-        }
-
-        PullRequest pullRequest = payload.pull_request;
-
-        // Check if PR was actually merged
-        if !pullRequest.merged {
-            log:printInfo(string `PR #${pullRequest.number} was closed but not merged`);
-            return http:OK;
+        // Check if this is a merged PR event
+        boolean? merged = event.pull_request.merged;
+        if merged != true {
+            log:printInfo("PR not merged, skipping notification");
+            return;
         }
 
         // Apply filters
-        if !shouldProcessPullRequest(pullRequest = pullRequest) {
-            return http:OK;
+        if !shouldProcessPullRequest(event.pull_request) {
+            log:printInfo("PR did not match filters, skipping notification");
+            return;
         }
 
-        // Build Slack message
-        string slackMessage = buildSlackMessage(pullRequest = pullRequest, repository = payload.repository);
+        // Build and send Slack message
+        string slackMessage = buildSlackMessage(event.pull_request, event.repository);
 
-        // Send to Slack
-        _ = check slackClient->/chat\.postMessage.post(payload = {
+        _ = check slackClient->/chat\.postMessage.post({
             channel: slackChannelId,
-            text: slackMessage,
-            mrkdwn: true
+            text: slackMessage
         });
 
-        log:printInfo(string `Slack notification sent for PR #${pullRequest.number}`);
-        
-        return http:OK;
+        log:printInfo(string `Slack notification sent for PR #${event.pull_request.number}`);
     }
 
-    // Health check endpoint
-    resource function get health() returns string {
-        return "GitHub webhook listener is running";
+    remote function onOpened(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onReopened(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onAssigned(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onUnassigned(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onReviewRequested(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onReviewRequestRemoved(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onLabeled(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onUnlabeled(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
+    }
+
+    remote function onEdited(github:PullRequestEvent event) returns error? {
+        // Not implemented - only handling merged PRs
     }
 }
+

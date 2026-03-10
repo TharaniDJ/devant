@@ -1,51 +1,46 @@
-import ballerina/log;
+import ballerinax/trigger.github;
 
 // Check if PR matches the configured filters
-function shouldProcessPullRequest(PullRequest pullRequest) returns boolean {
-    // Check base branch filter
+function shouldProcessPullRequest(github:PullRequest pr) returns boolean {
+    // Filter by base branch (e.g., only main/release branches)
     if filterBaseBranches.length() > 0 {
-        boolean branchMatches = false;
+        boolean matchesBaseBranch = false;
         foreach string branch in filterBaseBranches {
-            if pullRequest.base.ref == branch {
-                branchMatches = true;
+            if pr.base.'ref == branch {
+                matchesBaseBranch = true;
                 break;
             }
         }
-        if !branchMatches {
-            log:printInfo(string `PR #${pullRequest.number} skipped: base branch ${pullRequest.base.ref} not in filter`);
+        if !matchesBaseBranch {
             return false;
         }
     }
 
-    // Check author filter
-    if filterAuthor != "" && pullRequest.user.login != filterAuthor {
-        log:printInfo(string `PR #${pullRequest.number} skipped: author ${pullRequest.user.login} does not match filter`);
-        return false;
-    }
-
-    // Check label filter
+    // Filter by label
     if filterLabels.length() > 0 {
-        Label[]? prLabels = pullRequest.labels;
-        if prLabels is () {
-            log:printInfo(string `PR #${pullRequest.number} skipped: no labels found`);
-            return false;
-        }
-        
-        boolean labelMatches = false;
-        foreach Label prLabel in prLabels {
-            foreach string filterLabel in filterLabels {
-                if prLabel.name == filterLabel {
-                    labelMatches = true;
+        boolean hasMatchingLabel = false;
+        github:Label[]? prLabels = pr.labels;
+        if prLabels is github:Label[] {
+            foreach github:Label prLabel in prLabels {
+                foreach string filterLabel in filterLabels {
+                    if prLabel.name == filterLabel {
+                        hasMatchingLabel = true;
+                        break;
+                    }
+                }
+                if hasMatchingLabel {
                     break;
                 }
             }
-            if labelMatches {
-                break;
-            }
         }
-        
-        if !labelMatches {
-            log:printInfo(string `PR #${pullRequest.number} skipped: no matching labels`);
+        if !hasMatchingLabel {
+            return false;
+        }
+    }
+
+    // Filter by author
+    if filterAuthor != "" {
+        if pr.user.login != filterAuthor {
             return false;
         }
     }
@@ -54,49 +49,48 @@ function shouldProcessPullRequest(PullRequest pullRequest) returns boolean {
 }
 
 // Build Slack message from PR data
-function buildSlackMessage(PullRequest pullRequest, Repository repository) returns string {
+function buildSlackMessage(github:PullRequest pr, github:Repository repo) returns string {
     string message = string `🎉 *Pull Request Merged*\n\n`;
-    message += string `*Repository:* ${repository.full_name}\n`;
-    message += string `*PR:* <${pullRequest.html_url}|#${pullRequest.number} - ${pullRequest.title}>\n`;
-    message += string `*Author:* ${pullRequest.user.login}\n`;
-    message += string `*Base Branch:* ${pullRequest.base.ref}\n`;
-    message += string `*Head Branch:* ${pullRequest.head.ref}\n`;
+    message += string `*Repository:* <${repo.html_url}|${repo.full_name}>\n`;
+    message += string `*PR:* <${pr.html_url}|#${pr.number} - ${pr.title}>\n`;
+    message += string `*Author:* <${pr.user.html_url}|@${pr.user.login}>\n`;
+    message += string `*Base Branch:* ${pr.base.'ref}\n`;
 
-    // Add PR description if enabled
+    // Include PR description if configured
     if includePrDescription {
-        string? prBody = pullRequest.body;
-        if prBody is string && prBody.trim() != "" {
-            string truncatedBody = prBody.length() > 200 ? prBody.substring(0, 200) + "..." : prBody;
-            message += string `*Description:* ${truncatedBody}\n`;
+        string? prBody = pr.body;
+        if prBody is string {
+            string description = prBody;
+            if description.length() > 200 {
+                description = description.substring(0, 200) + "...";
+            }
+            message += string `*Description:* ${description}\n`;
         }
     }
 
-    // Add reviewers if enabled
+    // Include reviewers if configured
     if includeReviewers {
-        User[]? reviewers = pullRequest.requested_reviewers;
-        if reviewers is User[] && reviewers.length() > 0 {
-            string reviewerNames = "";
+        github:User[]? reviewers = pr.requested_reviewers;
+        if reviewers is github:User[] && reviewers.length() > 0 {
+            message += "*Reviewers:* ";
             foreach int i in 0 ..< reviewers.length() {
-                User reviewer = reviewers[i];
-                reviewerNames += reviewer.login;
+                message += string `<${reviewers[i].html_url}|@${reviewers[i].login}>`;
                 if i < reviewers.length() - 1 {
-                    reviewerNames += ", ";
+                    message += ", ";
                 }
             }
-            message += string `*Reviewers:* ${reviewerNames}\n`;
+            message += "\n";
         }
     }
 
-    // Add diff stats if enabled
+    // Include diff stats if configured
     if includeDiffStats {
-        int? additions = pullRequest.additions;
-        int? deletions = pullRequest.deletions;
-        int? changedFiles = pullRequest.changed_files;
-        
-        if additions is int && deletions is int && changedFiles is int {
-            message += string `*Changes:* +${additions} -${deletions} across ${changedFiles} file(s)\n`;
-        }
+        int additions = pr.additions ?: 0;
+        int deletions = pr.deletions ?: 0;
+        int changedFiles = pr.changed_files ?: 0;
+        message += string `*Changes:* +${additions} -${deletions} across ${changedFiles} file(s)\n`;
     }
 
     return message;
 }
+

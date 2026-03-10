@@ -3,3 +3,13 @@ org = "devantdemos"
 name = "devant"
 version = "1.0.0"
 distribution = "2201.13.1"
+
+[[dependency]]
+org = "ballerinax"
+name = "slack"
+version = "5.0.0"
+
+[[dependency]]
+org = "ballerinax"
+name = "trigger.github"
+version = "0.10.0"

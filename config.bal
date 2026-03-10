@@ -4,6 +4,10 @@ configurable string slackChannelId = ?;
 
 // GitHub webhook configuration
 configurable int webhookPort = 8090;
+configurable string githubCallback = "";
+
+// GitHub repository (org/repo format)
+configurable string[] githubRepos = ?;
 
 // Optional filters
 configurable string[] filterBaseBranches = ["main"];
