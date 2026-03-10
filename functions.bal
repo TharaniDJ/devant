@@ -1,5 +1,6 @@
 import ballerinax/trigger.github;
 import ballerina/regex;
+import ballerina/time;
 
 // Check if PR matches the configured filters
 function shouldProcessPullRequest(github:PullRequest pr) returns boolean {
@@ -55,9 +56,15 @@ function calculateCycleTime(github:PullRequest pr) returns decimal? {
     string? mergedAt = pr.merged_at;
 
     if createdAt is string && mergedAt is string {
-        // Simple calculation - in production, use proper time parsing
-        // This is a placeholder that returns a mock value
-        return 24.5; // Replace with actual time calculation
+        // Parse ISO 8601 timestamps and calculate difference
+        time:Utc|error createdTime = time:utcFromString(createdAt);
+        time:Utc|error mergedTime = time:utcFromString(mergedAt);
+
+        if createdTime is time:Utc && mergedTime is time:Utc {
+            decimal diffSeconds = time:utcDiffSeconds(mergedTime, createdTime);
+            decimal hours = diffSeconds / 3600.0;
+            return hours;
+        }
     }
     return ();
 }
