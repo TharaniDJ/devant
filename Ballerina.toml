@@ -1,7 +1,8 @@
 [package]
-org = "devantdemos"
+org = "wso2"
 name = "devant"
-version = "1.0.0"
+version = "0.1.0"
+title = "Slack-notification-GitHub-PR-merged"
 distribution = "2201.13.1"
 
 [[dependency]]
