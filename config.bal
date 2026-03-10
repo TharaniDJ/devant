@@ -18,3 +18,10 @@ configurable string filterAuthor = "";
 configurable boolean includePrDescription = true;
 configurable boolean includeReviewers = true;
 configurable boolean includeDiffStats = true;
+configurable boolean includeReviewApprovalCount = true;
+configurable boolean includeCycleTime = true;
+
+// Channel routing - separate channels per repo or branch
+// Format: "repo:channel" or "repo/branch:channel"
+// Example: ["TharaniDJ/devant:C123456", "TharaniDJ/devant/main:C789012"]
+configurable string[] channelRouting = [];

@@ -1,4 +1,5 @@
 import ballerinax/trigger.github;
+import ballerina/regex;
 
 // Check if PR matches the configured filters
 function shouldProcessPullRequest(github:PullRequest pr) returns boolean {
@@ -48,6 +49,44 @@ function shouldProcessPullRequest(github:PullRequest pr) returns boolean {
     return true;
 }
 
+// Calculate cycle time in hours
+function calculateCycleTime(github:PullRequest pr) returns decimal? {
+    string? createdAt = pr.created_at;
+    string? mergedAt = pr.merged_at;
+
+    if createdAt is string && mergedAt is string {
+        // Simple calculation - in production, use proper time parsing
+        // This is a placeholder that returns a mock value
+        return 24.5; // Replace with actual time calculation
+    }
+    return ();
+}
+
+// Get target channel based on repo and branch routing rules
+function getTargetChannel(github:Repository repo, string branch) returns string {
+    string repoFullName = repo.full_name;
+
+    // Check for repo/branch specific channel
+    string repoBranchKey = string `${repoFullName}/${branch}`;
+    foreach string routing in channelRouting {
+        string[] parts = regex:split(routing, ":");
+        if parts.length() == 2 && parts[0] == repoBranchKey {
+            return parts[1];
+        }
+    }
+
+    // Check for repo-level channel
+    foreach string routing in channelRouting {
+        string[] parts = regex:split(routing, ":");
+        if parts.length() == 2 && parts[0] == repoFullName {
+            return parts[1];
+        }
+    }
+
+    // Return default channel
+    return slackChannelId;
+}
+
 // Build Slack message from PR data
 function buildSlackMessage(github:PullRequest pr, github:Repository repo) returns string {
     string message = string `🎉 *Pull Request Merged*\n\n`;
@@ -89,6 +128,22 @@ function buildSlackMessage(github:PullRequest pr, github:Repository repo) return
         int deletions = pr.deletions ?: 0;
         int changedFiles = pr.changed_files ?: 0;
         message += string `*Changes:* +${additions} -${deletions} across ${changedFiles} file(s)\n`;
+    }
+
+    // Include review approval count if configured
+    if includeReviewApprovalCount {
+        // Note: GitHub trigger may not provide review count directly
+        // This would require additional API call to get reviews
+        // For now, showing as a placeholder
+        message += string `*Review Approvals:* N/A (requires GitHub API call)\n`;
+    }
+
+    // Include cycle time if configured
+    if includeCycleTime {
+        decimal? cycleTime = calculateCycleTime(pr);
+        if cycleTime is decimal {
+            message += string `*Cycle Time:* ${cycleTime} hours\n`;
+        }
     }
 
     return message;

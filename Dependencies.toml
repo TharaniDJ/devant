@@ -261,6 +261,18 @@ dependencies = [
 
 [[package]]
 org = "ballerina"
+name = "regex"
+version = "1.3.2"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.string"}
+]
+modules = [
+	{org = "ballerina", packageName = "regex", moduleName = "regex"}
+]
+
+[[package]]
+org = "ballerina"
 name = "task"
 version = "2.11.1"
 dependencies = [
@@ -354,6 +366,7 @@ name = "devant"
 version = "0.1.0"
 dependencies = [
 	{org = "ballerina", name = "log"},
+	{org = "ballerina", name = "regex"},
 	{org = "ballerinax", name = "slack"},
 	{org = "ballerinax", name = "trigger.github"}
 ]

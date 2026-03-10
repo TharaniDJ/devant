@@ -22,12 +22,15 @@ service github:PullRequestService on githubListener {
         // Build and send Slack message
         string slackMessage = buildSlackMessage(event.pull_request, event.repository);
 
+        // Get target channel based on routing rules
+        string targetChannel = getTargetChannel(event.repository, event.pull_request.base.'ref);
+
         _ = check slackClient->/chat\.postMessage.post({
-            channel: slackChannelId,
+            channel: targetChannel,
             text: slackMessage
         });
 
-        log:printInfo(string `Slack notification sent for PR #${event.pull_request.number}`);
+        log:printInfo(string `Slack notification sent for PR #${event.pull_request.number} to channel ${targetChannel}`);
     }
 
     remote function onOpened(github:PullRequestEvent event) returns error? {
