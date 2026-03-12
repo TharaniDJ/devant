@@ -96,21 +96,25 @@ function getTargetChannel(github:Repository repo, string branch) returns string 
 
 // Build Slack message from PR data
 function buildSlackMessage(github:PullRequest pr, github:Repository repo) returns string {
-    string message = string `🎉 *Pull Request Merged*\n\n`;
-    message += string `*Repository:* <${repo.html_url}|${repo.full_name}>\n`;
-    message += string `*PR:* <${pr.html_url}|#${pr.number} - ${pr.title}>\n`;
-    message += string `*Author:* <${pr.user.html_url}|@${pr.user.login}>\n`;
-    message += string `*Base Branch:* ${pr.base.'ref}\n`;
+    string message = "🎉 *Pull Request Merged Successfully!*\n\n";
+
+    // Repository and PR info
+    message += "*Repository:* <" + repo.html_url + "|" + repo.full_name + ">\n";
+    message += "*Pull Request:* <" + pr.html_url + "|#" + pr.number.toString() + " - " + pr.title + ">\n";
+    message += "*Author:* <" + pr.user.html_url + "|@" + pr.user.login + ">\n";
+    message += "*Target Branch:* `" + pr.base.'ref + "`\n";
+
+    message += "\n─────────────────────────\n\n";
 
     // Include PR description if configured
     if includePrDescription {
         string? prBody = pr.body;
-        if prBody is string {
+        if prBody is string && prBody.trim() != "" {
             string description = prBody;
             if description.length() > 200 {
                 description = description.substring(0, 200) + "...";
             }
-            message += string `*Description:* ${description}\n`;
+            message += "*Description:*\n" + description + "\n\n";
         }
     }
 
@@ -120,12 +124,12 @@ function buildSlackMessage(github:PullRequest pr, github:Repository repo) return
         if reviewers is github:User[] && reviewers.length() > 0 {
             message += "*Reviewers:* ";
             foreach int i in 0 ..< reviewers.length() {
-                message += string `<${reviewers[i].html_url}|@${reviewers[i].login}>`;
+                message += "<" + reviewers[i].html_url + "|@" + reviewers[i].login + ">";
                 if i < reviewers.length() - 1 {
                     message += ", ";
                 }
             }
-            message += "\n";
+            message += "\n\n";
         }
     }
 
@@ -134,25 +138,38 @@ function buildSlackMessage(github:PullRequest pr, github:Repository repo) return
         int additions = pr.additions ?: 0;
         int deletions = pr.deletions ?: 0;
         int changedFiles = pr.changed_files ?: 0;
-        message += string `*Changes:* +${additions} -${deletions} across ${changedFiles} file(s)\n`;
-    }
-
-    // Include review approval count if configured
-    if includeReviewApprovalCount {
-        // Note: GitHub trigger may not provide review count directly
-        // This would require additional API call to get reviews
-        // For now, showing as a placeholder
-        message += string `*Review Approvals:* N/A (requires GitHub API call)\n`;
+        message += "*Code Changes:*\n";
+        message += "   • Files changed: " + changedFiles.toString() + "\n";
+        message += "   • Additions: +" + additions.toString() + " lines\n";
+        message += "   • Deletions: -" + deletions.toString() + " lines\n\n";
     }
 
     // Include cycle time if configured
     if includeCycleTime {
         decimal? cycleTime = calculateCycleTime(pr);
         if cycleTime is decimal {
-            message += string `*Cycle Time:* ${cycleTime} hours\n`;
+            string formattedTime = formatCycleTime(cycleTime);
+            message += "*Cycle Time:* " + formattedTime + "\n\n";
         }
     }
 
+    message += "✅ *Status:* Merged and ready to deploy!";
+
     return message;
+}
+
+// Format cycle time in a human-readable format
+function formatCycleTime(decimal hours) returns string {
+    if hours < 1d {
+        int minutes = <int>(hours * 60);
+        return minutes.toString() + " minute(s)";
+    } else if hours < 24d {
+        decimal roundedHours = decimal:round(hours, 1);
+        return roundedHours.toString() + " hour(s)";
+    } else {
+        decimal days = hours / 24d;
+        decimal roundedDays = decimal:round(days, 1);
+        return roundedDays.toString() + " day(s)";
+    }
 }
 
