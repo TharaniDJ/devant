@@ -34,9 +34,6 @@ dependencies = [
 org = "ballerina"
 name = "cloud"
 version = "4.0.0"
-modules = [
-	{org = "ballerina", packageName = "cloud", moduleName = "cloud"}
-]
 
 [[package]]
 org = "ballerina"
@@ -371,7 +368,6 @@ org = "wso2"
 name = "devant"
 version = "0.1.0"
 dependencies = [
-	{org = "ballerina", name = "cloud"},
 	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "regex"},
 	{org = "ballerina", name = "time"},
