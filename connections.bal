@@ -13,4 +13,3 @@ listener github:Listener githubListener = new ({
     "port": webhookPort,
     "callbackUrl": githubCallback
 });
-

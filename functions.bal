@@ -172,4 +172,3 @@ function formatCycleTime(decimal hours) returns string {
         return roundedDays.toString() + " day(s)";
     }
 }
-

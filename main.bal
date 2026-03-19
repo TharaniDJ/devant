@@ -69,4 +69,3 @@ service github:PullRequestService on githubListener {
         // Not implemented - only handling merged PRs
     }
 }
-
